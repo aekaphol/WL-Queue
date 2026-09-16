@@ -639,21 +639,69 @@
 
   const $ = id => document.getElementById(id);
 
-  // ---------- storage ----------
-  async function loadEntries(){
-    try{
-      const res = await window.storage.get(STORAGE_KEY, true);
-      entries = res && res.value ? JSON.parse(res.value) : [];
-    }catch(e){
-      entries = [];
+  // ================= Backend (Firebase Realtime Database) =================
+  // 1) สร้างโปรเจกต์ฟรีที่ https://console.firebase.google.com
+  // 2) เปิดใช้งาน Realtime Database (โหมดทดสอบ / test mode ก็พอสำหรับเริ่มต้น)
+  // 3) คัดลอก "Database URL" มาใส่แทนค่าด้านล่างนี้
+  //    ตัวอย่าง: https://wl-queue-12345-default-rtdb.asia-southeast1.firebasedatabase.app
+  https://console.firebase.google.com/u/1/project/wl-queue/database/wl-queue-default-rtdb/data/~2F
+
+  const DB_CONFIGURED = /^https:\/\/.+firebasedatabase\.app\/?$/.test(FIREBASE_DB_URL) ||
+                         (FIREBASE_DB_URL.startsWith('https://') && !FIREBASE_DB_URL.includes('YOUR_FIREBASE'));
+
+  function showConfigBanner(){
+    if(document.getElementById('cfgBanner')) return;
+    const b = document.createElement('div');
+    b.id = 'cfgBanner';
+    b.style.cssText = 'position:sticky;top:0;z-index:50;background:#b2483a;color:#fff8f2;' +
+      'font-family:"Noto Sans Thai",sans-serif;font-size:13px;padding:10px 16px;text-align:center;';
+    b.textContent = '⚠️ ยังไม่ได้เชื่อมต่อฐานข้อมูล Firebase — ข้อมูลตอนนี้บันทึกเฉพาะเครื่องนี้เครื่องเดียว ไม่ซิงก์ข้ามอุปกรณ์ (ดูวิธีตั้งค่าในตัวไฟล์ HTML บรรทัดบนสุดของ <script>)';
+    document.body.prepend(b);
+  }
+
+  async function dbGet(key){
+    if(!DB_CONFIGURED){
+      try{ return JSON.parse(localStorage.getItem(key) || 'null'); }
+      catch(e){ return null; }
     }
+    try{
+      const res = await fetch(`${FIREBASE_DB_URL}/${key}.json`);
+      if(!res.ok) return null;
+      return await res.json();
+    }catch(e){ console.error('dbGet failed', e); return null; }
+  }
+  async function dbSet(key, value){
+    if(!DB_CONFIGURED){
+      try{ localStorage.setItem(key, JSON.stringify(value)); return true; }
+      catch(e){ return false; }
+    }
+    try{
+      const res = await fetch(`${FIREBASE_DB_URL}/${key}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(value)
+      });
+      return res.ok;
+    }catch(e){ console.error('dbSet failed', e); return false; }
+  }
+  function normalizeList(data){
+    if(Array.isArray(data)) return data;
+    if(data && typeof data === 'object') return Object.values(data);
+    return [];
+  }
+
+  if(!DB_CONFIGURED){
+    document.addEventListener('DOMContentLoaded', showConfigBanner);
+    if(document.readyState !== 'loading') showConfigBanner();
+  }
+
+  // ---------- queue storage ----------
+  async function loadEntries(){
+    const data = await dbGet(STORAGE_KEY);
+    entries = normalizeList(data);
   }
   async function saveEntries(){
-    try{
-      await window.storage.set(STORAGE_KEY, JSON.stringify(entries), true);
-    }catch(e){
-      console.error('save failed', e);
-    }
+    await dbSet(STORAGE_KEY, entries);
   }
 
   function nextNumber(){
@@ -954,12 +1002,8 @@
   $('resDateInput').value = todayKey();
 
   async function loadReservations(){
-    try{
-      const res = await window.storage.get(RES_STORAGE_KEY, true);
-      reservations = res && res.value ? JSON.parse(res.value) : [];
-    }catch(e){
-      reservations = [];
-    }
+    const data = await dbGet(RES_STORAGE_KEY);
+    reservations = normalizeList(data);
     if(cleanupOldReservationHistory()){
       await saveReservations();
     }
@@ -978,11 +1022,7 @@
     return reservations.length !== before;
   }
   async function saveReservations(){
-    try{
-      await window.storage.set(RES_STORAGE_KEY, JSON.stringify(reservations), true);
-    }catch(e){
-      console.error('save reservations failed', e);
-    }
+    await dbSet(RES_STORAGE_KEY, reservations);
   }
 
   $('resAdultsPlus').onclick = () => { resAdults = Math.min(30, resAdults+1); $('resAdultsVal').textContent = resAdults; };
