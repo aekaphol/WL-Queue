@@ -456,9 +456,28 @@
   .btn-cancel{ background:transparent; color:var(--smoke); border:1px solid var(--char-600); }
   .btn-undo{ background:var(--char-600); color:var(--amber); }
   @media (max-width:520px){
-    .q-timer{ order:2; margin-left:0; text-align:left; min-width:0; }
-    .q-actions{ order:3; width:100%; margin-left:0; justify-content:flex-end; }
-    .q-info{ order:1; min-width:100%; }
+    .queue-row{
+      display:grid;
+      grid-template-columns:auto auto 1fr;
+      grid-template-areas:
+        "num type type"
+        "info info timer"
+        "actions actions actions";
+      column-gap:10px;
+      row-gap:8px;
+    }
+    .q-num{ grid-area:num; }
+    .q-type{ grid-area:type; }
+    .q-info{ grid-area:info; min-width:0; }
+    .q-timer{ grid-area:timer; min-width:auto; text-align:right; align-self:end; }
+    .q-actions{ grid-area:actions; width:100%; justify-content:flex-end; }
+
+    .panel-queue-list{
+      background:none;
+      border:none;
+      border-radius:0;
+      padding:20px 0 0;
+    }
   }
 
   /* edit mode */
@@ -591,7 +610,7 @@
     </div>
 
     <!-- Queue list panel -->
-    <div class="panel">
+    <div class="panel panel-queue-list">
       <div class="list-head">
         <h2>รายการคิวที่รออยู่</h2>
         <span class="list-count" id="queueCountBadge">0 คิว</span>
