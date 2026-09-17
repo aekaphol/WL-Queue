@@ -333,10 +333,34 @@
   .list-head{
     display:flex;
     align-items:center;
-    justify-content:space-between;
+    gap:10px;
     margin-bottom:14px;
   }
   .list-head h2{ margin:0; }
+  .list-count{
+    font-family:'Kanit',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    color:var(--char-900);
+    background:var(--amber);
+    border-radius:999px;
+    padding:2px 10px;
+    line-height:1.6;
+  }
+  .queue-list-scroll{
+    max-height:min(58vh, 560px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-top:12px;
+    margin-top:-12px;
+    padding-right:6px;
+    margin-right:-6px;
+    scrollbar-width:thin;
+    scrollbar-color:var(--char-600) transparent;
+  }
+  .queue-list-scroll::-webkit-scrollbar{ width:6px; }
+  .queue-list-scroll::-webkit-scrollbar-track{ background:transparent; }
+  .queue-list-scroll::-webkit-scrollbar-thumb{ background:var(--char-600); border-radius:3px; }
   .empty-state{
     text-align:center;
     padding:50px 20px;
@@ -350,6 +374,8 @@
   .queue-row{
     display:flex;
     align-items:center;
+    flex-wrap:wrap;
+    row-gap:10px;
     gap:14px;
     background:var(--char-700);
     border:1px solid var(--char-600);
@@ -385,10 +411,11 @@
     min-width:24px;
     text-align:center;
   }
-  .q-info{ flex:1; min-width:0; }
+  .q-info{ flex:1; min-width:160px; }
   .q-people{
-    font-size:13.5px;
-    color:var(--cream-dim);
+    font-size:17px;
+    font-weight:700;
+    color:var(--cream);
   }
   .q-note{
     font-size:12.5px;
@@ -397,6 +424,7 @@
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
+    max-width:100%;
   }
   .q-timer{
     font-family:'Kanit',sans-serif;
@@ -411,6 +439,7 @@
     display:flex;
     gap:6px;
     flex-shrink:0;
+    margin-left:auto;
   }
   .btn{
     border:none;
@@ -426,6 +455,11 @@
   .btn-edit{ background:var(--char-600); color:var(--cream-dim); }
   .btn-cancel{ background:transparent; color:var(--smoke); border:1px solid var(--char-600); }
   .btn-undo{ background:var(--char-600); color:var(--amber); }
+  @media (max-width:520px){
+    .q-timer{ order:2; margin-left:0; text-align:left; min-width:0; }
+    .q-actions{ order:3; width:100%; margin-left:0; justify-content:flex-end; }
+    .q-info{ order:1; min-width:100%; }
+  }
 
   /* edit mode */
   .edit-box{ width:100%; }
@@ -560,8 +594,9 @@
     <div class="panel">
       <div class="list-head">
         <h2>รายการคิวที่รออยู่</h2>
+        <span class="list-count" id="queueCountBadge">0 คิว</span>
       </div>
-      <div id="queueList"><div class="loading">กำลังโหลดคิว...</div></div>
+      <div class="queue-list-scroll"><div id="queueList"><div class="loading">กำลังโหลดคิว...</div></div></div>
 
       <button class="history-toggle" id="historyToggle">
         <span class="chev">▸</span> ประวัติวันนี้ (รับโต๊ะแล้ว / ยกเลิก)
@@ -644,7 +679,7 @@
   // 2) เปิดใช้งาน Realtime Database (โหมดทดสอบ / test mode ก็พอสำหรับเริ่มต้น)
   // 3) คัดลอก "Database URL" มาใส่แทนค่าด้านล่างนี้
   //    ตัวอย่าง: https://wl-queue-12345-default-rtdb.asia-southeast1.firebasedatabase.app
-  const FIREBASE_DB_URL = "https://wl-queue-default-rtdb.asia-southeast1.firebasedatabase.app";
+  const FIREBASE_DB_URL = "YOUR_FIREBASE_DATABASE_URL_HERE";
 
   const DB_CONFIGURED = /^https:\/\/.+firebasedatabase\.app\/?$/.test(FIREBASE_DB_URL) ||
                          (FIREBASE_DB_URL.startsWith('https://') && !FIREBASE_DB_URL.includes('YOUR_FIREBASE'));
@@ -929,6 +964,7 @@
     $('statSingle').textContent = waiting.filter(e=>e.type==='single').length;
     $('statPair').textContent = waiting.filter(e=>e.type==='pair').length;
     $('nextNumPreview').textContent = '#' + String(nextNumber()).padStart(3,'0');
+    $('queueCountBadge').textContent = waiting.length + ' คิว';
   }
 
   function escapeHtml(s){
